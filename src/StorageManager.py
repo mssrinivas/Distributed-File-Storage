@@ -1,6 +1,5 @@
 import json
 import sys
-
 sys.path.append('./')
 sys.path.append('./proto')
 sys.path.append('./service')
@@ -8,7 +7,10 @@ import grpc
 import chunk_pb2, chunk_pb2_grpc
 from src.MemoryManager import MemoryManager
 import socket
-CHUNK_SIZE_ = 1024  # 1KB // the server (receiver node) must also be configured to take the same chunk size
+from InitiateReplica import start_replica
+
+CHUNK_SIZE_ = 1024
+
 
 class StorageManagerClient:
     def __init__(self, address):
@@ -16,7 +18,6 @@ class StorageManagerClient:
         self.stub = chunk_pb2_grpc.FileServerStub(channel)
 
     def upload_chunk_stream(self, hash_id, chunk_size, number_of_chunks, stream_of_bytes_chunks):
-
         if str(CHUNK_SIZE_) != str(chunk_size):
             message = "Unable to save hash_id %s. Chunk size given %s and it should be %s" % (
                 hash_id, chunk_size, CHUNK_SIZE_)
@@ -70,7 +71,6 @@ class StorageManagerClient:
         return self.stub.hash_id_exists_in_memory(chunk_pb2.Request(hash_id=hash_id)).success
 
 
-
 class StorageManagerServer(chunk_pb2_grpc.FileServerServicer):
 
     def __init__(self, memory_node_bytes, page_memory_size_bytes):
@@ -93,16 +93,17 @@ class StorageManagerServer(chunk_pb2_grpc.FileServerServicer):
         assert chunk_size != 0
         assert number_of_chunks != 0
         success = self.memory_manager.put_data(request_iterator, hash_id, number_of_chunks, False)
-        print("----------CAME HERE TRIGGER-----------")
-        dict = {"169.105.246.3": 7129}
-        #GossipProtocol()
-        self.UDPClientSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
-        self.serverAddressPort = ("169.105.246.3", 21900)
-        message = json.dumps(
-            {"IPaddress": "169.105.246.3", "gossip": False, "Dictionary": dict, "BlackListedNodes": []})
-        self.UDPClientSocket.sendto(message.encode(), self.serverAddressPort)  # gossip initialtion
-        #print("AFTER_GOSSIP= ", GossipofGossip.best_nodes_to_replicate)
-        print("----------CAME HERE TRIGGER-----------")
+        # print("----------CAME HERE TRIGGER-----------")
+        # dict = {"169.105.246.3": 7129}
+        # #GossipProtocol()
+        # self.UDPClientSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+        # self.serverAddressPort = ("169.105.246.3", 21000)
+        # message = json.dumps(
+        #     {"IPaddress": "169.105.246.3", "gossip": False, "Dictionary": dict, "BlackListedNodes": []})
+        # self.UDPClientSocket.sendto(message.encode(), self.serverAddressPort)  # gossip initialtion
+        # #print("AFTER_GOSSIP= ", GossipofGossip.best_nodes_to_replicate)
+        # print("----------CAME HERE TRIGGER-----------")
+        start_replica()
         return chunk_pb2.Reply(success=success)
 
     def upload_single_chunk(self, request_chunk, context):

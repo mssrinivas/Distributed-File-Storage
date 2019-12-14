@@ -36,7 +36,7 @@ class GossipProtocol:
     path = ["(0,0)", "(0,1)", "(0,2)"]
     counter = 1
     IPaddress = "169.105.246.3"
-    localPort = 21900
+    localPort = 21000
     UDPServerSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
     UDPServerSocket.bind((IPaddress, localPort))
     def __init__(self):
@@ -273,7 +273,7 @@ class GossipProtocol:
                 pass
 
     def transmit_message(self, hostname, IPaddress, gossip, Dictionary, BlackListedNodes):
-        serverAddressPort = (hostname, 23000)
+        serverAddressPort = (hostname, 22000)
         bufferSize = 1024
         # message = json.dumps(message_to_be_gossiped)
         message = json.dumps(
