@@ -273,7 +273,7 @@ class GossipProtocol:
                 pass
 
     def transmit_message(self, hostname, IPaddress, gossip, Dictionary, BlackListedNodes):
-        serverAddressPort = (hostname, 22000)
+        serverAddressPort = (hostname, 21000)
         bufferSize = 1024
         # message = json.dumps(message_to_be_gossiped)
         message = json.dumps(

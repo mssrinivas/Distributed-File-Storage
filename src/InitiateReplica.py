@@ -26,7 +26,6 @@ def start_replica():
         {"IPaddress": "169.105.246.3", "gossip": False, "Dictionary": dict, "BlackListedNodes": []})
     UDPClientSocket.sendto(message.encode(), serverAddressPort)  # gossip initialtion
     # end of gossip
-    sys.exit(0)
 
 # print(resp)
 # gp.initiateReplication()
