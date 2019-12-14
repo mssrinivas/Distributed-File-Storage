@@ -1,3 +1,4 @@
+import json
 import sys
 
 sys.path.append('./')
@@ -6,10 +7,8 @@ sys.path.append('./service')
 import grpc
 import chunk_pb2, chunk_pb2_grpc
 from src.MemoryManager import MemoryManager
-from src.InitiateReplica import InitiateReplication
-
+import socket
 CHUNK_SIZE_ = 1024  # 1KB // the server (receiver node) must also be configured to take the same chunk size
-
 
 class StorageManagerClient:
     def __init__(self, address):
@@ -28,7 +27,6 @@ class StorageManagerClient:
             ('key-chunk-size', str(chunk_size)),
             ('key-number-of-chunks', str(number_of_chunks))
         )
-
         response = self.stub.upload_chunk_stream(stream_of_bytes_chunks, metadata=metadata)
 
         if response.success:
@@ -72,6 +70,7 @@ class StorageManagerClient:
         return self.stub.hash_id_exists_in_memory(chunk_pb2.Request(hash_id=hash_id)).success
 
 
+
 class StorageManagerServer(chunk_pb2_grpc.FileServerServicer):
 
     def __init__(self, memory_node_bytes, page_memory_size_bytes):
@@ -93,9 +92,17 @@ class StorageManagerServer(chunk_pb2_grpc.FileServerServicer):
         assert hash_id != ""
         assert chunk_size != 0
         assert number_of_chunks != 0
-
         success = self.memory_manager.put_data(request_iterator, hash_id, number_of_chunks, False)
-        InitiateReplication.__init__()
+        print("----------CAME HERE TRIGGER-----------")
+        dict = {"169.105.246.3": 7129}
+        #GossipProtocol()
+        self.UDPClientSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+        self.serverAddressPort = ("169.105.246.3", 21900)
+        message = json.dumps(
+            {"IPaddress": "169.105.246.3", "gossip": False, "Dictionary": dict, "BlackListedNodes": []})
+        self.UDPClientSocket.sendto(message.encode(), self.serverAddressPort)  # gossip initialtion
+        #print("AFTER_GOSSIP= ", GossipofGossip.best_nodes_to_replicate)
+        print("----------CAME HERE TRIGGER-----------")
         return chunk_pb2.Reply(success=success)
 
     def upload_single_chunk(self, request_chunk, context):

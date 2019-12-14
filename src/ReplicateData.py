@@ -39,7 +39,7 @@ class ReplicateData :
             return fileService_pb2.ack(success=True, message="Data Forwarded.")
 
     def initiateReplication(self):
-        serverAddress = "169.105.246.6"
+        serverAddress = "169.105.246."
         serverPort = 50051
         rList = [1, 2, 3, 4, 5]
         arr = bytes(rList)

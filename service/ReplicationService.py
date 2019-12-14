@@ -4,7 +4,7 @@ import sys
 import json
 sys.path.append('./proto')
 sys.path.append('./service')
-from  proto import fileService_pb2_grpc, fileService_pb2
+from proto import fileService_pb2_grpc, fileService_pb2
 
 
 class ReplicationService(fileService_pb2_grpc.FileserviceServicer):
@@ -22,7 +22,7 @@ class ReplicationService(fileService_pb2_grpc.FileserviceServicer):
             print("forward coord =", forward_coordinates)
             forward_server_addr = self.getneighbordata(forward_coordinates)
             print("forward IP =", forward_server_addr)
-            forward_port = 50051
+            forward_port = 5555
             forward_channel = grpc.insecure_channel(forward_server_addr + ":" + str(forward_port))
             forward_stub = fileService_pb2_grpc.FileserviceStub(forward_channel)
             request.currentpos += 1
@@ -37,10 +37,10 @@ class ReplicationService(fileService_pb2_grpc.FileserviceServicer):
             return fileService_pb2.ack(success=True, message="Data Forwarded.")
 
     def getneighbordata(self, next_node):
-        print("CAMEHERE")
+        print("CAME HERE")
         with open('data/metadata.json', 'r') as f:
             metadata_dict = json.load(f)
         print("'"+next_node+"'")
         nodes = metadata_dict['nodes']
         print(nodes)
-        return nodes[next_node]        
+        return nodes[next_node]

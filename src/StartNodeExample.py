@@ -16,8 +16,8 @@ if __name__ == '__main__':
     total_memory_node_bytes = 1 * 1024 * 1024 * 1024  # start with 1 GB
     CHUNK_SIZE_ = 1024
     total_page_memory_size_bytes = CHUNK_SIZE_
-    chunk_pb2_grpc.add_FileServerServicer_to_server(StorageManagerServer(total_memory_node_bytes, total_page_memory_size_bytes), server_grpc)
-    fileService_pb2_grpc.add_FileserviceServicer_to_server(ReplicationService(), server_grpc)
+    chunk_pb2_grpc.add_FileServerServicer_to_server(StorageManagerServer(total_memory_node_bytes, total_page_memory_size_bytes), server_grpc, )
+    #fileService_pb2_grpc.add_FileserviceServicer_to_server(ReplicationService(), server_grpc)
     port = 5555
     server_grpc.add_insecure_port(f'[::]:{port}')
     server_grpc.start()

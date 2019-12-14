@@ -14,7 +14,6 @@ import ast
 sys.path.append('./proto')
 sys.path.append('./service')
 import grpc
-from proto import fileService_pb2, fileService_pb2_grpc
 import time
 import math
 from threading import Lock, Thread
@@ -27,26 +26,25 @@ class GossipProtocol:
     totalNodes = [1234, 3456, 7899, 7543]
     sys.setrecursionlimit(200000)
     localMinimumCapacity = -sys.maxsize - 1
-    IPaddress = "169.105.246.3"
-    localPort = 21000
     local_message = None
     bufferSize = 1024
     # Create a datagram socket
-    UDPServerSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
-    # Bind to address and ip
-    UDPServerSocket.bind((IPaddress, localPort))
     blacklisted_nodes = []
     minimum_IP = None
     minimum_Capacity = None
     listofNeighbors = []
     path = ["(0,0)", "(0,1)", "(0,2)"]
     counter = 1
-
+    IPaddress = "169.105.246.3"
+    localPort = 21900
+    UDPServerSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+    UDPServerSocket.bind((IPaddress, localPort))
     def __init__(self):
-        self.initiateReplication()
+        #self.initiateReplication()
         global best_nodes_to_replicate
         best_nodes_to_replicate = []
-        # self.start_threads()
+        print("HERE")
+        self.start_threads()
 
     def input_message(self):
         message_to_send = "message"
@@ -68,6 +66,7 @@ class GossipProtocol:
                     listofNeighbors = self.fetch_all_neighbors()
                     print("listofNeighbors", listofNeighbors)
                     print("BL NODES = ", BlackListedNodes)
+
                     for ip in range(len(listofNeighbors)):
                         if ip in BlackListedNodes:
                             continue
@@ -78,6 +77,7 @@ class GossipProtocol:
                         self.counter = 1
                         return True
                     self.blacklisted_nodes = BlackListedNodes
+
                 return False
             else:
                 self.local_message = message_received
@@ -90,6 +90,7 @@ class GossipProtocol:
                 self.counter += 1
                 if self.counter >= 5:
                     print("Final Msg : ", message_received)
+                    best_nodes_to_replicate.append(message_received)
                     if self.IPaddress not in BlackListedNodes:
                         BlackListedNodes.append(self.IPaddress)
                     print("listofNeighbors", self.listofNeighbors)
@@ -113,7 +114,7 @@ class GossipProtocol:
                 self.blacklisted_nodes = BlackListedNodes
                 return False
 
-    def updated_message_util(self, data, minimum_capacity, leastUsedIP, gossip_phase, BlackListedNodes):
+    def updated_message_util(self, data, minimum_capacity, leastUsedIP, gossip_phase):
         # update message
         print("DATA = ", leastUsedIP)
         Dictionary = {self.minimum_IP: self.minimum_Capacity}
@@ -134,7 +135,7 @@ class GossipProtocol:
 
     def fetch_all_neighbors(self):
         list_of_neigbors = []
-        filepath = 'data/neighbors.txt'
+        filepath = '../metadata/neighbors.txt'
         with open(filepath, "r") as ins:
             for line in ins:
                 print(line)
@@ -146,7 +147,7 @@ class GossipProtocol:
     def get_minimum_capacity_neighbors(self, initalReplicaServer):
         list_of_neigbors = []
         capacity_of_neighbors = {self.IPaddress: 7939}
-        filepath = 'data/neighbors.txt'
+        filepath = '../metadata/neighbors.txt'
         with open(filepath, "r") as ins:
             for line in ins:
                 print(line)
@@ -172,12 +173,12 @@ class GossipProtocol:
                 if response == 0:
                     print(hostname, 'up')
                     # Call to check capacity
-                    if hostname2 == "169.105.246.3":
-                        coordinates = "(0,1)"
+                    if hostname2 == "169.105.246.9":
+                        coordinates = "(0,0)"
                     elif hostname2 == "169.105.246.6":
                         coordinates = "(1,1)"
                     else:
-                        coordinates = "(-1,0)"
+                        coordinates = "(0,2)"
 
                     print("GET COORDINATES CAP OF", coordinates)
                     IPaddress, capacity = self.getneighborcapacity(coordinates)
@@ -200,7 +201,7 @@ class GossipProtocol:
     def receive_message(self):
         while True:
             messageReceived, address = self.UDPServerSocket.recvfrom(1024)
-            self.getPath()
+             #self.getPath()
             data = json.loads(messageReceived.decode())
             print("GOT DATA ", data, " FROM", address[0])
             IPaddress = data.get("IPaddress")
@@ -211,7 +212,7 @@ class GossipProtocol:
             Convergence_Value = self.checkforConvergence(data, BlackListedNodes)
             print("LOCAL BLACKLISTED", self.blacklisted_nodes, "RECEIVED BLACK LISTED", BlackListedNodes)
             print("LATEST VALUES", IPaddress, gossip_flag, Convergence_Value)
-            if str(IPaddress) == "169.105.246.9" and gossip_flag == False:
+            if str(IPaddress) == self.IPaddress and gossip_flag == False:
                 # make data.gossip == true
                 list_of_neighbors = self.fetch_all_neighbors()
                 minimum_capacity_neighbor = self.get_minimum_capacity_neighbors(IPaddress)
@@ -268,10 +269,11 @@ class GossipProtocol:
                         else:
                             continue
             elif Convergence_Value == True:
-                sys.exit(0)
+                #sys.exit(0)
+                pass
 
     def transmit_message(self, hostname, IPaddress, gossip, Dictionary, BlackListedNodes):
-        serverAddressPort = (hostname, 21000)
+        serverAddressPort = (hostname, 23000)
         bufferSize = 1024
         # message = json.dumps(message_to_be_gossiped)
         message = json.dumps(
@@ -282,13 +284,13 @@ class GossipProtocol:
 
 
     def getneighbordata(self, next_node):
-        with open('data/metadata.json', 'r') as f:
+        with open('../metadata/metadata.json', 'r') as f:
             metadata_dict = json.load(f)
         nodes = metadata_dict['nodes']
         return nodes[next_node]
 
     def getneighborcapacity(self, next_node):
-        with open('data/metadata.json', 'r') as f:
+        with open('../metadata/metadata.json', 'r') as f:
             metadata_dict = json.load(f)
         nodes = metadata_dict['capacities']
         print("all nodes", nodes[next_node])
@@ -298,7 +300,3 @@ class GossipProtocol:
         # Thread(target=self.replicateContent()).start()
         # Thread(target=self.retries).start()
         Thread(target=self.receive_message).start()
-
-# initalt repl
-# calling main
-# best nodes
