@@ -11,6 +11,7 @@ from enum import Enum
 import sys
 import grpc
 import ast
+
 sys.path.append('./proto')
 sys.path.append('./service')
 import grpc
@@ -39,8 +40,9 @@ class GossipProtocol:
     localPort = 21000
     UDPServerSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
     UDPServerSocket.bind((IPaddress, localPort))
+
     def __init__(self):
-        #self.initiateReplication()
+        # self.initiateReplication()
         global best_nodes_to_replicate
         best_nodes_to_replicate = []
         print("HERE")
@@ -52,9 +54,9 @@ class GossipProtocol:
     def checkforConvergence(self, data, BlackListedNodes):
         print("data = ", data)
         message_received = data.get("Dictionary")
-        print(self.blacklisted_nodes)
-        print("MG-", message_received)
-        print("LM", self.local_message)
+        print("SET OF BLACK LISTED NODES = ", self.blacklisted_nodes)
+        print("MG  = ", message_received)
+        print("LM  = ", self.local_message)
 
         if BlackListedNodes == None:
             if self.local_message == message_received:
@@ -63,29 +65,32 @@ class GossipProtocol:
                 if self.counter >= 5:
                     BlackListedNodes = []
                     BlackListedNodes.append(self.IPaddress)
+                    BlackListedNodes = set(BlackListedNodes)
                     listofNeighbors = self.fetch_all_neighbors()
                     print("listofNeighbors", listofNeighbors)
                     print("BL NODES = ", BlackListedNodes)
-
                     for ip in range(len(listofNeighbors)):
                         if ip in BlackListedNodes:
                             continue
                         else:
                             BlackListedNodes.append(listofNeighbors[ip])
-                    if len(BlackListedNodes) >= 4:
+                            #self.blacklisted_nodes = set(BlackListedNodes)
+                    BlackListedNodes = set(BlackListedNodes)
+                    if len(BlackListedNodes) >= 3:
                         print("CAME HERE-111")
+                        self.blacklisted_nodes = []
                         self.counter = 1
-                        return True
-                    self.blacklisted_nodes = BlackListedNodes
-
-                return False
+                        return True, BlackListedNodes
+                return False, BlackListedNodes
             else:
                 self.local_message = message_received
                 self.counter = 1
-                self.blacklisted_nodes = BlackListedNodes
-                return False
+                self.blacklisted_nodes = []
+                return False, BlackListedNodes
 
         if BlackListedNodes != None:
+            if len(BlackListedNodes) >= 3:
+                return True, BlackListedNodes
             if self.local_message == message_received:
                 self.counter += 1
                 if self.counter >= 5:
@@ -100,19 +105,21 @@ class GossipProtocol:
                             continue
                         else:
                             BlackListedNodes.append(listofNeighbors[ip])
+                            #self.blacklisted_nodes = set(BlackListedNodes)
+                    BlackListedNodes = set(BlackListedNodes)
                     print("NEW BL", BlackListedNodes)
                     # if len(self.blacklisted_nodes) >= 0.75 * len(self.totalNodes):
-                    if len(BlackListedNodes) >= 4:
+                    if len(BlackListedNodes) >= 3:
                         print("CAME HERE-222")
                         self.counter = 1
-                        return True
-                self.blacklisted_nodes = BlackListedNodes
-                return False
+                        self.blacklisted_nodes = []
+                        return True, BlackListedNodes
+                return False, BlackListedNodes
             else:
                 self.local_message = message_received
                 self.counter = 1
-                self.blacklisted_nodes = BlackListedNodes
-                return False
+                self.blacklisted_nodes = []
+                return False, BlackListedNodes
 
     def updated_message_util(self, data, minimum_capacity, leastUsedIP, gossip_phase):
         # update message
@@ -173,13 +180,12 @@ class GossipProtocol:
                 if response == 0:
                     print(hostname, 'up')
                     # Call to check capacity
-                    if hostname2 == "169.105.246.9":
+                    if hostname2 == "169.105.246.4":
+                        coordinates = "(1,0)"
+                    elif hostname2 == "169.105.246.9":
                         coordinates = "(0,0)"
-                    elif hostname2 == "169.105.246.6":
-                        coordinates = "(1,1)"
                     else:
                         coordinates = "(0,2)"
-
                     print("GET COORDINATES CAP OF", coordinates)
                     IPaddress, capacity = self.getneighborcapacity(coordinates)
                     print("GET CAPACITY OF NEIGHBORS = ", IPaddress, capacity)
@@ -201,7 +207,8 @@ class GossipProtocol:
     def receive_message(self):
         while True:
             messageReceived, address = self.UDPServerSocket.recvfrom(1024)
-             #self.getPath()
+            # self.getPath()
+            print(messageReceived)
             data = json.loads(messageReceived.decode())
             print("GOT DATA ", data, " FROM", address[0])
             IPaddress = data.get("IPaddress")
@@ -209,7 +216,7 @@ class GossipProtocol:
             Dictionary = data.get("Dictionary")
             BlackListedNodes = data.get("BlackListedNodes")
 
-            Convergence_Value = self.checkforConvergence(data, BlackListedNodes)
+            Convergence_Value, BlackListedNodes = self.checkforConvergence(data, BlackListedNodes)
             print("LOCAL BLACKLISTED", self.blacklisted_nodes, "RECEIVED BLACK LISTED", BlackListedNodes)
             print("LATEST VALUES", IPaddress, gossip_flag, Convergence_Value)
             if str(IPaddress) == self.IPaddress and gossip_flag == False:
@@ -226,7 +233,7 @@ class GossipProtocol:
                 for ip in range(len(list_of_neighbors)):
                     response = os.system("ping -c 1 " + list_of_neighbors[ip].strip('\n'))
                     if response == 0:
-                        BlackListedNodes = self.blacklisted_nodes
+                        BlackListedNodes = list(BlackListedNodes)
                         IPaddressOne = list_of_neighbors[ip].strip('\n')
                         print("SENDING----------", IPaddressOne, IPaddress, True, Dictionary, BlackListedNodes)
                         self.transmit_message(IPaddressOne, IPaddress, True, Dictionary, BlackListedNodes)
@@ -252,7 +259,7 @@ class GossipProtocol:
                     for ip in range(len(list_of_neighbors)):
                         response = os.system("ping -c 1 " + list_of_neighbors[ip].strip('\n'))
                         if response == 0:
-                            BlackListedNodes = self.blacklisted_nodes
+                            BlackListedNodes = list(BlackListedNodes)
                             IPaddressOne = list_of_neighbors[ip].strip('\n')
                             print("SENDING----------", IPaddressOne, IPaddress, True, Dictionary, BlackListedNodes)
                             self.transmit_message(IPaddressOne, IPaddress, True, Dictionary, BlackListedNodes)
@@ -263,13 +270,13 @@ class GossipProtocol:
                         response = os.system("ping -c 1 " + list_of_neighbors[ip].strip('\n'))
                         if response == 0:
                             IPaddressOne = list_of_neighbors[ip].strip('\n')
-                            BlackListedNodes = self.blacklisted_nodes
+                            BlackListedNodes = list(BlackListedNodes)
                             print("SENDING----------", IPaddressOne, IPaddress, True, Dictionary, BlackListedNodes)
                             self.transmit_message(IPaddressOne, IPaddress, True, Dictionary, BlackListedNodes)
                         else:
                             continue
             elif Convergence_Value == True:
-                #sys.exit(0)
+                # sys.exit(0)
                 pass
 
     def transmit_message(self, hostname, IPaddress, gossip, Dictionary, BlackListedNodes):
@@ -278,10 +285,9 @@ class GossipProtocol:
         # message = json.dumps(message_to_be_gossiped)
         message = json.dumps(
             {"IPaddress": IPaddress, "gossip": gossip, "Dictionary": Dictionary,
-             "BlackListedNodes": self.blacklisted_nodes})
+             "BlackListedNodes": BlackListedNodes})
         print("Sending message to", message)
         self.UDPServerSocket.sendto(message.encode(), serverAddressPort)
-
 
     def getneighbordata(self, next_node):
         with open('../metadata/metadata.json', 'r') as f:
