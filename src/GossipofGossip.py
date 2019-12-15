@@ -236,13 +236,14 @@ class GossipProtocol:
                 minimum_capacity_neighbor_one, minimum_capacity_neighbor_two = self.get_minimum_capacity_neighbors(IPaddress)
                 max_size = sys.maxsize
                 minimum_capacity_one = min(minimum_capacity_neighbor_one[1], max_size)
-                if minimum_capacity_neighbor_two != None:
-                    minimum_capacity_two = min(minimum_capacity_neighbor_two[1], max_size)
+                minimum_capacity_two = None
                 if minimum_capacity_neighbor_two == None:
                     minimum_capacity_two = max_size
-                    minimum_capacity_neighbor_two[0] = max_size
+                    minimum_capacity_neighbor_two = ["255.255.255.255",max_size]
+                elif minimum_capacity_neighbor_two != None:
+                    minimum_capacity_two = min(minimum_capacity_neighbor_two[1], max_size)
                 self.counter = 1
-                IPaddress, gossip, Dictionary = self.updated_message_util(data, minimum_capacity_one, minimum_capacity_two,  minimum_capacity_neighbor_one[0], minimum_capacity_neighbor_two[0], True)
+                IPaddress, gossip, Dictiossnary = self.updated_message_util(data, minimum_capacity_one, minimum_capacity_two,  minimum_capacity_neighbor_one[0], minimum_capacity_neighbor_two[0], True)
                 print("Inside If", IPaddress, gossip, Dictionary)
                 for ip in range(len(list_of_neighbors)):
                     response = os.system("ping -c 1 " + list_of_neighbors[ip].strip('\n'))
