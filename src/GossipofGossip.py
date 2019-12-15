@@ -31,8 +31,10 @@ class GossipProtocol:
     bufferSize = 1024
     # Create a datagram socket
     blacklisted_nodes = []
-    minimum_IP = None
-    minimum_Capacity = None
+    minimum_IP_one = None
+    minimum_Capacity_one = None
+    minimum_IP_two = None
+    minimum_Capacity_two = None
     listofNeighbors = []
     path = ["(0,0)", "(0,1)", "(0,2)"]
     counter = 1
@@ -120,24 +122,25 @@ class GossipProtocol:
                 self.counter = 1
                 return False
 
-    def updated_message_util(self, data, minimum_capacity, leastUsedIP, gossip_phase):
+    def updated_message_util(self, data, minimum_capacity_one,minimum_capacity_two, leastUsedIP_one, leastUsedIP_two, gossip_phase):
         # update message
-        print("DATA = ", leastUsedIP)
-        Dictionary = {self.minimum_IP: self.minimum_Capacity}
-        Dict = data.get("Dictionary")
+        Dictionary = {leastUsedIP_one: minimum_capacity_one, leastUsedIP_two: minimum_capacity_two}
         IPaddress = data.get("IPaddress")
         gossip = gossip_phase
         return IPaddress, gossip, Dictionary
 
     def find_minimum_in_dictionary(self, dictionary):
-        result = []
-        min_value = None
         print("SICT = ", dictionary)
-        mini = min(dictionary, key=lambda k: dictionary[k])
-        print("MINIMUM = ", [mini, dictionary[mini]])
-        self.minimum_IP = mini.strip('\n')
-        self.minimum_Capacity = dictionary[mini]
-        return [mini.strip('\n'), dictionary[mini]]
+        mini_one = min(dictionary, key=lambda k: dictionary[k])
+        print("MINIMUM ONE= ", [mini_one, dictionary[mini_one]])
+        self.minimum_IP_one = mini_one.strip('\n')
+        self.minimum_Capacity_one = dictionary[mini_one]
+        del dictionary[mini_one]
+        mini_two = min(dictionary, key=lambda k: dictionary[k])
+        print("MINIMUM TWO= ", [mini_two, dictionary[mini_two]])
+        self.minimum_IP_two = mini_two.strip('\n')
+        self.minimum_Capacity_two = dictionary[mini_two]
+        return [mini_one.strip('\n'), dictionary[mini_one]], [mini_two.strip('\n'), dictionary[mini_two]]
 
     def fetch_all_neighbors(self):
         list_of_neigbors = []
@@ -200,8 +203,8 @@ class GossipProtocol:
             return None
         else:
             print("capacity_of_neighbors = ", capacity_of_neighbors)
-            first_minimum = self.find_minimum_in_dictionary(capacity_of_neighbors)
-            return [first_minimum[0], first_minimum[1]]
+            first_minimum, second_minimum = self.find_minimum_in_dictionary(capacity_of_neighbors)
+            return [first_minimum[0], first_minimum[1]],[second_minimum[0], second_minimum[1]]
 
     def receive_message(self):
         while True:
@@ -215,13 +218,15 @@ class GossipProtocol:
             BlackListedNodes = data.get("BlackListedNodes")
             if str(IPaddress) == self.IPaddress and gossip_flag == False:
                 print("Faaaaaaaaaaaaaaaaaakkkkkk")
+                self.blacklisted_nodes=[]
                 time.sleep(1)
                 list_of_neighbors = self.fetch_all_neighbors()
-                minimum_capacity_neighbor = self.get_minimum_capacity_neighbors(IPaddress)
+                minimum_capacity_neighbor_one, minimum_capacity_neighbor_two = self.get_minimum_capacity_neighbors(IPaddress)
                 max_size = sys.maxsize
-                minimum_capacity = min(minimum_capacity_neighbor[1], max_size)
+                minimum_capacity_one = min(minimum_capacity_neighbor_one[1], max_size)
+                minimum_capacity_two = min(minimum_capacity_neighbor_two[1], max_size)
                 self.counter = 1
-                IPaddress, gossip, Dictionary = self.updated_message_util(data, minimum_capacity, minimum_capacity_neighbor[0], True)
+                IPaddress, gossip, Dictionary = self.updated_message_util(data, minimum_capacity_one, minimum_capacity_two,  minimum_capacity_neighbor_one[0], minimum_capacity_neighbor_two[0], True)
                 for ip in range(len(list_of_neighbors)):
                     response = os.system("ping -c 1 " + list_of_neighbors[ip].strip('\n'))
                     if response == 0:
@@ -229,31 +234,34 @@ class GossipProtocol:
                         print("--------------------")
                         print(IPaddressOne, IPaddress, True, Dictionary, BlackListedNodes)
                         print("--------------------")
-                        self.transmit_message(IPaddressOne, IPaddress, True, Dictionary, BlackListedNodes)
+                        self.transmit_message(IPaddressOne, IPaddress, False, Dictionary, BlackListedNodes)
                     else:
                         continue
             elif gossip_flag:
+                if len(BlackListedNodes) >= 3:
+                    continue
                 Convergence_Value = self.checkforConvergence(data, BlackListedNodes)
                 print(" CONVERGENCE = ", Convergence_Value)
                 time.sleep(1)
                 if Convergence_Value == True:
-                    print("STOP TRASMITTING!!!!!!!!!!")
                     continue
                 else:
                     list_of_neighbors = self.fetch_all_neighbors()
-                    minimum_capacity_neighbor = self.get_minimum_capacity_neighbors(IPaddress)
-                    print("MINIMUM of minimum_capacity_neighbor = ", minimum_capacity_neighbor)
-                    if minimum_capacity_neighbor != None:
+                    minimum_capacity_neighbor_one, minimum_capacity_neighbor_two = self.get_minimum_capacity_neighbors(IPaddress)
+                    print("MINIMUM of minimum_capacity_neighbors = ", minimum_capacity_neighbor_one, " ------ ", minimum_capacity_neighbor_two)
+                    if minimum_capacity_neighbor_one != None and minimum_capacity_neighbor_two != None:
                         dict = data.get("Dictionary")
-                        received_minimum_capacity = dict[list(dict.keys())[0]]
-                        minimum_capacity = min(minimum_capacity_neighbor[1], received_minimum_capacity)
-                        if received_minimum_capacity != minimum_capacity:
-                            IPaddress, gossip, Dictionary = self.updated_message_util(data, minimum_capacity, minimum_capacity_neighbor[0], True)
+                        Local_Dict = {minimum_capacity_neighbor_one[0]:minimum_capacity_neighbor_one[1] , minimum_capacity_neighbor_two[0]:minimum_capacity_neighbor_two[1]}
+                        New_Dict = dict.update(Local_Dict)
+                        sorted(New_Dict.items(), key=lambda x: x[1])
+                        first_minimum = New_Dict[list(New_Dict.keys())[0]]
+                        second_minimum = New_Dict[list(New_Dict.keys())[1]]
+                        Temp_Dict = {first_minimum:New_Dict[first_minimum],second_minimum:New_Dict[second_minimum]}
+                        if Temp_Dict != Local_Dict:
+                            IPaddress, gossip, Dictionary = self.updated_message_util(data, first_minimum,second_minimum, list(New_Dict.keys())[0], list(New_Dict.keys())[1], True)
                         for ip in range(len(list_of_neighbors)):
                             response = os.system("ping -c 1 " + list_of_neighbors[ip].strip('\n'))
                             if response == 0:
-                               # if BlackListedNodes!=None and self.blacklisted_nodes!=None and len(BlackListedNodes) > 0 and len(self.blacklisted_nodes) >0:
-                                #    BlackListedNodes.append(self.blacklisted_nodes)
                                 IPaddressOne = list_of_neighbors[ip].strip('\n')
                                 print("--------------------")
                                 print(IPaddressOne, IPaddress, True, Dictionary, self.blacklisted_nodes)
@@ -261,6 +269,37 @@ class GossipProtocol:
                                 self.transmit_message(IPaddressOne, IPaddress, True, Dictionary, self.blacklisted_nodes)
                             else:
                                 continue
+
+            elif gossip_flag == False and self.IPaddress != IPaddress:
+                self.blacklisted_nodes = []
+                list_of_neighbors = self.fetch_all_neighbors()
+                minimum_capacity_neighbor_one, minimum_capacity_neighbor_two = self.get_minimum_capacity_neighbors(
+                    IPaddress)
+                print("MINIMUM of minimum_capacity_neighbors = ", minimum_capacity_neighbor_one, " ------ ",
+                      minimum_capacity_neighbor_two)
+                if minimum_capacity_neighbor_one != None and minimum_capacity_neighbor_two != None:
+                    dict = data.get("Dictionary")
+                    Local_Dict = {minimum_capacity_neighbor_one[0]: minimum_capacity_neighbor_one[1],
+                                  minimum_capacity_neighbor_two[0]: minimum_capacity_neighbor_two[1]}
+                    New_Dict = dict.update(Local_Dict)
+                    sorted(New_Dict.items(), key=lambda x: x[1])
+                    first_minimum = New_Dict[list(New_Dict.keys())[0]]
+                    second_minimum = New_Dict[list(New_Dict.keys())[1]]
+                    Temp_Dict = {first_minimum: New_Dict[first_minimum], second_minimum: New_Dict[second_minimum]}
+                    if Temp_Dict != Local_Dict:
+                        IPaddress, gossip, Dictionary = self.updated_message_util(data, first_minimum, second_minimum,
+                                                                                  list(New_Dict.keys())[0],
+                                                                               list(New_Dict.keys())[1], True)
+                    for ip in range(len(list_of_neighbors)):
+                        response = os.system("ping -c 1 " + list_of_neighbors[ip].strip('\n'))
+                        if response == 0:
+                            IPaddressOne = list_of_neighbors[ip].strip('\n')
+                            print("--------------------")
+                            print(IPaddressOne, IPaddress, True, Dictionary, self.blacklisted_nodes)
+                            print("--------------------")
+                            self.transmit_message(IPaddressOne, IPaddress, True, Dictionary, self.blacklisted_nodes)
+                        else:
+                            continue
 
     def transmit_message(self, hostname, IPaddress, gossip, Dictionary, BlackListedNodes):
         serverAddressPort = (hostname, 21000)
