@@ -93,16 +93,6 @@ class StorageManagerServer(chunk_pb2_grpc.FileServerServicer):
         assert chunk_size != 0
         assert number_of_chunks != 0
         success = self.memory_manager.put_data(request_iterator, hash_id, number_of_chunks, False)
-        # print("----------CAME HERE TRIGGER-----------")
-        # dict = {"169.105.246.3": 7129}
-        # #GossipProtocol()
-        # self.UDPClientSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
-        # self.serverAddressPort = ("169.105.246.3", 21000)
-        # message = json.dumps(
-        #     {"IPaddress": "169.105.246.3", "gossip": False, "Dictionary": dict, "BlackListedNodes": []})
-        # self.UDPClientSocket.sendto(message.encode(), self.serverAddressPort)  # gossip initialtion
-        # #print("AFTER_GOSSIP= ", GossipofGossip.best_nodes_to_replicate)
-        # print("----------CAME HERE TRIGGER-----------")
         start_replica()
         return chunk_pb2.Reply(success=success)
 
