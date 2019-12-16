@@ -179,12 +179,10 @@ class GossipProtocol:
             list_of_neigbors.remove(initalReplicaServer)
         while len(list_of_neigbors) > 0:
             print("number of neighbours: ", len(list_of_neigbors))
-
             forwardIP = random.choice(list_of_neigbors)
             print("SENDING NEXT TO = ", forwardIP)
             hostname = str.encode(forwardIP)
             hostname2 = forwardIP
-
             print("HOSTNAME = ", hostname2, "INT REPL =", initalReplicaServer)
             if hostname2 != initalReplicaServer:
                 print("ping -c 1 " + hostname.decode("utf-8"))
@@ -193,9 +191,9 @@ class GossipProtocol:
                 if response == 0:
                     print(hostname, 'up')
                     # Call to check capacity
-                    if hostname2 == "169.105.246.4":
-                        coordinates = "(1,0)"
-                    elif hostname2 == "169.105.246.5":
+                    if hostname2 == "169.105.246.6":
+                        coordinates = "(1,1)"
+                    elif hostname2 == "169.105.246.7":
                         coordinates = "(0,0)"
                     else:
                         coordinates = "(0,2)"
@@ -211,11 +209,11 @@ class GossipProtocol:
                     list_of_neigbors.remove(hostname2)
 
         if len(capacity_of_neighbors) == 0:
-            return None
+            return None, None
         if len(capacity_of_neighbors) == 1:
             print("capacity_of_neighbors = ", capacity_of_neighbors)
             minimum, blank = self.find_one_minimum_in_dictionary(capacity_of_neighbors)
-            return [minimum[0], minimum[1]], None
+            return [minimum[0], minimum[1]], ["255.255.255",sys.maxsize]
         else:
             print("capacity_of_neighbors = ", capacity_of_neighbors)
             first_minimum, second_minimum = self.find_minimum_in_dictionary(capacity_of_neighbors)
@@ -238,17 +236,14 @@ class GossipProtocol:
                 time.sleep(1)
                 list_of_neighbors = self.fetch_all_neighbors()
                 minimum_capacity_neighbor_one, minimum_capacity_neighbor_two = self.get_minimum_capacity_neighbors(IPaddress)
+                if minimum_capacity_neighbor_one != None and minimum_capacity_neighbor_two != None:
+                    continue
                 max_size = sys.maxsize
                 minimum_capacity_one = min(minimum_capacity_neighbor_one[1], max_size)
-                minimum_capacity_two = None
-                if minimum_capacity_neighbor_two == None:
-                    minimum_capacity_two = max_size
-                    minimum_capacity_neighbor_two = ["255.255.255.255",max_size]
-                elif minimum_capacity_neighbor_two != None:
-                    minimum_capacity_two = min(minimum_capacity_neighbor_two[1], max_size)
+                minimum_capacity_two = min(minimum_capacity_neighbor_two[1], max_size)
                 self.counter = 1
                 IPaddress, gossip, Dictionary = self.updated_message_util(data, minimum_capacity_one, minimum_capacity_two,  minimum_capacity_neighbor_one[0], minimum_capacity_neighbor_two[0], True)
-                print("Inside If", IPaddress, gossip, Dictionary)
+                print("Inside-If", IPaddress, gossip, Dictionary)
                 for ip in range(len(list_of_neighbors)):
                     response = os.system("ping -c 1 " + list_of_neighbors[ip].strip('\n'))
                     if response == 0:
@@ -272,13 +267,10 @@ class GossipProtocol:
                     list_of_neighbors = self.fetch_all_neighbors()
                     minimum_capacity_neighbor_one, minimum_capacity_neighbor_two = self.get_minimum_capacity_neighbors(IPaddress)
                     print("MINIMUM of minimum_capacity_neighbors = ", minimum_capacity_neighbor_one, " ------ ", minimum_capacity_neighbor_two)
-                    Local_Dict = {}
                     New_Dict = data.get("Dictionary")
-                    if minimum_capacity_neighbor_two == None:
-                        Local_Dict = {minimum_capacity_neighbor_one[0]: minimum_capacity_neighbor_one[1],
-                                      "255.255.255.255": sys.maxsize}
-                    elif minimum_capacity_neighbor_one != None and minimum_capacity_neighbor_two != None:
-                        Local_Dict = {minimum_capacity_neighbor_one[0]:minimum_capacity_neighbor_one[1] , minimum_capacity_neighbor_two[0]:minimum_capacity_neighbor_two[1]}
+                    if minimum_capacity_neighbor_one == None and minimum_capacity_neighbor_two == None:
+                        continue
+                    Local_Dict = {minimum_capacity_neighbor_one[0]:minimum_capacity_neighbor_one[1] , minimum_capacity_neighbor_two[0]:minimum_capacity_neighbor_two[1]}
                     New_Dict.update(Local_Dict)
                     sorted(New_Dict.items(), key=lambda x: x[1])
                     print("NEW DICT", New_Dict)
