@@ -54,9 +54,9 @@ class GossipProtocol:
     def input_message(self):
         message_to_send = "message"
 
-    def checkforConvergence(self, data, BlackListedNodes):
-        print("data = ", data)
-        message_received = data.get("Dictionary")
+    def checkforConvergence(self, Dictionary, BlackListedNodes, address):
+        print("data = ", Dictionary)
+        message_received = Dictionary
         print("SET OF BLACK LISTED NODES = ", self.blacklisted_nodes)
         print("MG  = ", message_received)
         print("LM  = ", self.local_message)
@@ -64,7 +64,7 @@ class GossipProtocol:
         if BlackListedNodes == None:
             if self.local_message == message_received:
                 print("COUNTER =", self.counter)
-                time.sleep(2)
+                time.sleep(1)
                 self.counter += 1
                 if self.counter >= 5:
                     BlackListedNodes = []
@@ -88,16 +88,17 @@ class GossipProtocol:
                         return True
                 return False
             else:
-                self.local_message = message_received
-                print("ASSIGNED message", self.local_message)
-                time.sleep(2)
+                self.local_message = {}
+                self.local_message = message_received.copy()
+                print("ASSIGNED message", message_received , "from = ", address)
+                time.sleep(1)
                 self.counter = 1
                 return False
 
         if BlackListedNodes != None:
             if self.local_message == message_received:
                 print("COUNTER =", self.counter)
-                time.sleep(2)
+                time.sleep(1)
                 self.counter += 1
                 if self.counter >= 5:
                     if self.IPaddress not in BlackListedNodes:
@@ -120,9 +121,10 @@ class GossipProtocol:
                         return True
                 return False
             else:
-                self.local_message = message_received
-                print("ASSIGNED message", self.local_message)
-                time.sleep(2)
+                self.local_message = {}
+                self.local_message=message_received.copy()
+                print("ASSIGNED message", message_received , "from = ", address)
+                time.sleep(1)
                 self.counter = 1
                 return False
 
@@ -230,13 +232,15 @@ class GossipProtocol:
             gossip_flag = data.get("gossip")
             Dictionary = data.get("Dictionary")
             BlackListedNodes = data.get("BlackListedNodes")
+            if len(BlackListedNodes) >= 3:
+                continue
             if str(IPaddress) == self.IPaddress and gossip_flag == False:
                 print("Faaaaaaaaaaaaaaaaaakkkkkk")
                 self.blacklisted_nodes=[]
                 time.sleep(1)
                 list_of_neighbors = self.fetch_all_neighbors()
                 minimum_capacity_neighbor_one, minimum_capacity_neighbor_two = self.get_minimum_capacity_neighbors(IPaddress)
-                if minimum_capacity_neighbor_one != None and minimum_capacity_neighbor_two != None:
+                if minimum_capacity_neighbor_one == None and minimum_capacity_neighbor_two == None:
                     continue
                 max_size = sys.maxsize
                 minimum_capacity_one = min(minimum_capacity_neighbor_one[1], max_size)
@@ -256,9 +260,7 @@ class GossipProtocol:
                         continue
             elif gossip_flag:
                 print("local message inside gossip_flg=", self.local_message)
-                if len(BlackListedNodes) >= 3:
-                    continue
-                Convergence_Value = self.checkforConvergence(data, BlackListedNodes)
+                Convergence_Value = self.checkforConvergence(data.get("Dictionary"), BlackListedNodes, address[0])
                 print(" CONVERGENCE = ", Convergence_Value)
                 time.sleep(1)
                 if Convergence_Value == True:
@@ -267,30 +269,31 @@ class GossipProtocol:
                     list_of_neighbors = self.fetch_all_neighbors()
                     minimum_capacity_neighbor_one, minimum_capacity_neighbor_two = self.get_minimum_capacity_neighbors(IPaddress)
                     print("MINIMUM of minimum_capacity_neighbors = ", minimum_capacity_neighbor_one, " ------ ", minimum_capacity_neighbor_two)
-                    New_Dict = data.get("Dictionary")
+                    Temp = data.get("Dictionary")
                     if minimum_capacity_neighbor_one == None and minimum_capacity_neighbor_two == None:
                         continue
                     Local_Dict = {minimum_capacity_neighbor_one[0]:minimum_capacity_neighbor_one[1] , minimum_capacity_neighbor_two[0]:minimum_capacity_neighbor_two[1]}
-                    New_Dict.update(Local_Dict)
-                    sorted(New_Dict.items(), key=lambda x: x[1])
+                    Temp.update(Local_Dict)
+                    New_Dict = {}
+                    New_Dict.update(sorted(Temp.items(), key=lambda x: x[1]))
                     print("NEW DICT", New_Dict)
                     first_minimum = New_Dict[list(New_Dict.keys())[0]]
                     second_minimum = New_Dict[list(New_Dict.keys())[1]]
                     Temp_Dict = {list(New_Dict.keys())[0]:first_minimum, list(New_Dict.keys())[1]:second_minimum}
                     print(Temp_Dict, Local_Dict)
                     if Temp_Dict != Local_Dict:
-                        IPaddress, gossip, Dictionary = self.updated_message_util(data, first_minimum, second_minimum,
+                        IPaddress, gossip, Dictionary_updated = self.updated_message_util(data, first_minimum, second_minimum,
                                                                                   list(New_Dict.keys())[0],
                                                                                   list(New_Dict.keys())[1], True)
-                        print("Inside If", IPaddress, gossip, Dictionary)
+                        print("Inside If", IPaddress, gossip, Dictionary_updated)
                         for ip in range(len(list_of_neighbors)):
                             response = os.system("ping -c 1 " + list_of_neighbors[ip].strip('\n'))
                             if response == 0:
                                 IPaddressOne = list_of_neighbors[ip].strip('\n')
                                 print("--------------------")
-                                print(IPaddressOne, IPaddress, True, Dictionary, self.blacklisted_nodes)
+                                print(IPaddressOne, IPaddress, True, Dictionary_updated, self.blacklisted_nodes)
                                 print("--------------------")
-                                self.transmit_message(IPaddressOne, IPaddress, True, Dictionary, self.blacklisted_nodes)
+                                self.transmit_message(IPaddressOne, IPaddress, True, Dictionary_updated, self.blacklisted_nodes)
                             else:
                                 continue
                     else:
@@ -298,6 +301,7 @@ class GossipProtocol:
                             response = os.system("ping -c 1 " + list_of_neighbors[ip].strip('\n'))
                             if response == 0:
                                 IPaddressOne = list_of_neighbors[ip].strip('\n')
+                                Dictionary = data.get("Dictionary")
                                 print("--------------------")
                                 print(IPaddressOne, IPaddress, True, Dictionary, self.blacklisted_nodes)
                                 print("--------------------")
@@ -313,34 +317,31 @@ class GossipProtocol:
                     IPaddress)
                 print("MINIMUM of minimum_capacity_neighbors = ", minimum_capacity_neighbor_one, " ------ ",
                       minimum_capacity_neighbor_two)
-                Local_Dict={}
-                New_Dict = data.get("Dictionary")
-                if minimum_capacity_neighbor_two == None:
-                    Local_Dict = {minimum_capacity_neighbor_one[0]: minimum_capacity_neighbor_one[1],
-                                  "255.255.255.255": sys.maxsize}
-                elif minimum_capacity_neighbor_one != None and minimum_capacity_neighbor_two != None:
-                    Local_Dict = {minimum_capacity_neighbor_one[0]: minimum_capacity_neighbor_one[1],
-                                  minimum_capacity_neighbor_two[0]: minimum_capacity_neighbor_two[1]}
-                New_Dict.update(Local_Dict)
-                sorted(New_Dict.items(), key=lambda x: x[1])
+                Temp = data.get("Dictionary")
+                if minimum_capacity_neighbor_one == None and minimum_capacity_neighbor_two== None:
+                    continue
+                Local_Dict = {minimum_capacity_neighbor_one[0]: minimum_capacity_neighbor_one[1], minimum_capacity_neighbor_two[0]: minimum_capacity_neighbor_two[1]}
+                Temp_Dict.update(Local_Dict)
+                New_Dict = {}
+                New_Dict.update(sorted(Temp.items(), key = lambda x : x[1]))
                 print("NEW DICT", New_Dict)
                 first_minimum = New_Dict[list(New_Dict.keys())[0]]
                 second_minimum = New_Dict[list(New_Dict.keys())[1]]
                 Temp_Dict = {list(New_Dict.keys())[0]:first_minimum, list(New_Dict.keys())[1]:second_minimum }
                 print(Temp_Dict,Local_Dict)
                 if Temp_Dict != Local_Dict:
-                    IPaddress, gossip, Dictionary = self.updated_message_util(data, first_minimum, second_minimum,
+                    IPaddress, gossip, Dictionary_updated = self.updated_message_util(data, first_minimum, second_minimum,
                                                                               list(New_Dict.keys())[0],
                                                                               list(New_Dict.keys())[1], True)
-                    print("Inside If", IPaddress, gossip, Dictionary)
+                    print("Inside If", IPaddress, gossip, Dictionary_updated)
                     for ip in range(len(list_of_neighbors)):
                         response = os.system("ping -c 1 " + list_of_neighbors[ip].strip('\n'))
                         if response == 0:
                             IPaddressOne = list_of_neighbors[ip].strip('\n')
                             print("--------------------")
-                            print(IPaddressOne, IPaddress, True, Dictionary, self.blacklisted_nodes)
+                            print(IPaddressOne, IPaddress, True, Dictionary_updated, self.blacklisted_nodes)
                             print("--------------------")
-                            self.transmit_message(IPaddressOne, IPaddress, True, Dictionary, self.blacklisted_nodes)
+                            self.transmit_message(IPaddressOne, IPaddress, True, Dictionary_updated, self.blacklisted_nodes)
                         else:
                             continue
                 else:
@@ -348,6 +349,7 @@ class GossipProtocol:
                         response = os.system("ping -c 1 " + list_of_neighbors[ip].strip('\n'))
                         if response == 0:
                             IPaddressOne = list_of_neighbors[ip].strip('\n')
+                            Dictionary = data.get("Dictionary")
                             print("--------------------")
                             print(IPaddressOne, IPaddress, True, Dictionary, self.blacklisted_nodes)
                             print("--------------------")
