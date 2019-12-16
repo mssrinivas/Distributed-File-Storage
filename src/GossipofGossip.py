@@ -89,6 +89,8 @@ class GossipProtocol:
                 return False
             else:
                 self.local_message = message_received
+                print("ASSIGNED message", self.local_message)
+                time.sleep(2)
                 self.counter = 1
                 return False
 
@@ -119,6 +121,8 @@ class GossipProtocol:
                 return False
             else:
                 self.local_message = message_received
+                print("ASSIGNED message", self.local_message)
+                time.sleep(2)
                 self.counter = 1
                 return False
 
@@ -243,7 +247,7 @@ class GossipProtocol:
                 elif minimum_capacity_neighbor_two != None:
                     minimum_capacity_two = min(minimum_capacity_neighbor_two[1], max_size)
                 self.counter = 1
-                IPaddress, gossip, Dictiossnary = self.updated_message_util(data, minimum_capacity_one, minimum_capacity_two,  minimum_capacity_neighbor_one[0], minimum_capacity_neighbor_two[0], True)
+                IPaddress, gossip, Dictionary = self.updated_message_util(data, minimum_capacity_one, minimum_capacity_two,  minimum_capacity_neighbor_one[0], minimum_capacity_neighbor_two[0], True)
                 print("Inside If", IPaddress, gossip, Dictionary)
                 for ip in range(len(list_of_neighbors)):
                     response = os.system("ping -c 1 " + list_of_neighbors[ip].strip('\n'))
