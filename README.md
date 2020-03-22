@@ -1,5 +1,7 @@
 # Replication in a distributed file storage system
 
+![Alt text](ScreenShots/replication.png?raw=true "Architecture")
+
 ## System Architecture
 
 ![Alt text](ScreenShots/mesh-architecture.png?raw=true "Architecture")
