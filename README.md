@@ -2,7 +2,7 @@
 
 ## System Architecture
 
-![Alt text](ScreenShots/mesh-architecture.png?raw=true "Owner Home Page")
+![Alt text](ScreenShots/mesh-architecture.png?raw=true "Architecture")
 
 
 ### Reason for a three-phase replication :
@@ -33,5 +33,8 @@ After receiving the coordinates of the alive nodes, the replication initiator cr
 
 4. Traversal 
 A Breadth-first traversal leads the data to the soon to be a replica node. The best thing about this implementation was the shortest path calculation with failure detection. That ensures that the initiating replica receives an acknowledgment from the replicating server.
+
+
+![Alt text](ScreenShots/Picture1.png?raw=true "Architecture")
 
 
