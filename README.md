@@ -1,4 +1,4 @@
-# xerox
+# Distributed File Storage System
 
 ## System Architecture
 
