@@ -38,9 +38,11 @@ A Breadth-first traversal leads the data to the soon to be a replica node. The b
 ![Alt text](ScreenShots/Picture1.png?raw=true "Architecture")
 
 
-Implementation Overview
+### Implementation Overview
 
-Stage - 1: When a “write request” or an “update request” is performed, middleware redirects the request to one of the nodes in the underlying architecture. 
+### Stage - 1:
+
+When a “write request” or an “update request” is performed, middleware redirects the request to one of the nodes in the underlying architecture. 
 
 Let us assume  Node - p gets the request.
 
@@ -50,7 +52,9 @@ Let us assume  Node - p gets the request.
 				Figure.  The initial state of the system
 
 
-Stage - 2: On Node - p “Best nodes for replication” module gets triggered for picking the best nodes to perform replication which are spread across the network. This method avoids the hotspots around the nodes that have taken the “write requests”. This methodology also helps in “read requests”. When a random node receives a read request, there are higher chances of nodes (holding the required data) encountered in a quick time when there is a spread of replica nodes. 
+### Stage - 2:
+
+On Node - p “Best nodes for replication” module gets triggered for picking the best nodes to perform replication which are spread across the network. This method avoids the hotspots around the nodes that have taken the “write requests”. This methodology also helps in “read requests”. When a random node receives a read request, there are higher chances of nodes (holding the required data) encountered in a quick time when there is a spread of replica nodes. 
 
 
 ![Alt text](ScreenShots/diagram-2.png?raw=true "Architecture")
@@ -62,7 +66,9 @@ Stage - 2: On Node - p “Best nodes for replication” module gets triggered fo
 
 
 
-Stage - 3: Gossip of Gossip is triggered to find the best nodes. In every gossip call, three different evaluations are performed:
+### Stage - 3:
+
+Gossip of Gossip is triggered to find the best nodes. In every gossip call, three different evaluations are performed:
 
 Check for convergence
 Calculate the best capacity of neighbors
@@ -72,16 +78,26 @@ Gossip the evaluations accordingly to all the neighbors
 This is performed until the convergence is met.
 
 ![Alt text](ScreenShots/diagram-03.png?raw=true "Architecture")
+				
+				Figure.  Gossip of Gossip convergence
 
-Stage - 4:  Based on the metadata that gets exchanged on a network level, we build a logical snapshot of the network for finding a path to the agreed nodes for replication. Assume node-x and node-y are picked as the best nodes for the replication. As shown in the matrix if a node is down we mark it as 0 and if it is up we mark it as 1 and create a logical mesh out of the available data.
+### Stage - 4: 
+
+Based on the metadata that gets exchanged on a network level, we build a logical snapshot of the network for finding a path to the agreed nodes for replication. Assume node-x and node-y are picked as the best nodes for the replication. As shown in the matrix if a node is down we mark it as 0 and if it is up we mark it as 1 and create a logical mesh out of the available data.
 
 ![Alt text](ScreenShots/diagram-05.png?raw=true "Architecture")
 
+				Figure.  Generation of logical snapshot
 
-Stage - 5: After performing “Gossip of Gossip” to achieve virtual consensus and generating a logical snapshot of the underlying network, we now calculate the shortest path with failure nodes from the replication initiation node (node - p) to destination replica-nodes (node-x and node-y). All these calculations are performed on the node that has initiated the replication. 
+
+### Stage - 5:
+
+After performing “Gossip of Gossip” to achieve virtual consensus and generating a logical snapshot of the underlying network, we now calculate the shortest path with failure nodes from the replication initiation node (node - p) to destination replica-nodes (node-x and node-y). All these calculations are performed on the node that has initiated the replication. 
 
 
-Stage - 6: Once the shortest path gets established. Data has to be packed into objects  and passed on to the neighbor nodes listed in the path. Every time a node gets the data to be replicated, two operations are performed
+### Stage - 6: 
+
+Once the shortest path gets established. Data has to be packed into objects  and passed on to the neighbor nodes listed in the path. Every time a node gets the data to be replicated, two operations are performed
 
 If the node is the destination node, it triggers the upload function which writes to the memory
 If the node is not the destination node, it evaluates the forwared_to node using the metadata and passes on the data object until step 1 is satisfied.
@@ -90,7 +106,16 @@ If the node is not the destination node, it evaluates the forwared_to node using
 
 ![Alt text](ScreenShots/diagram-06.png?raw=true "Architecture")
 
+				Figure.  Replication path to node x
+				
+
+
+
+				
+				
 ![Alt text](ScreenShots/diagram-07.png?raw=true "Architecture")
+
+
 
 
 Data is replicated successfully on two nodes.
